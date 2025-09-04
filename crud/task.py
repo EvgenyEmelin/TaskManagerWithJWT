@@ -51,3 +51,10 @@ async def delete_task(database: AsyncSession, task_id: int) -> Optional[Task]:
 async def get_user_by_username(database: AsyncSession, username: str) -> User | None:
     result = await database.execute(select(User).where(User.username == username))
     return result.scalars().first()
+
+async def create_user(db: AsyncSession, username: str, email: str, hashed_password: str) -> User:
+    user = User(username=username, email=email, hashed_password=hashed_password)
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user
