@@ -1,9 +1,19 @@
 from typing import List
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends,status
+from fastapi.security import OAuth2PasswordRequestForm
+
 from crud.task import create_task, read_tasks, read_task_by_id, update_task, delete_task
 from schemas.task import TaskCreate, TaskRead
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.session import get_async_session
+from database.models import User
+from security.dependencies import get_current_user
+from schemas.task import Token
+from security.security import verify_password, create_access_token
+from config import ACCESS_TOKEN_EXPIRE_MINUTES
+from crud.task import get_user_by_username
+from datetime import timedelta
+
 
 router = APIRouter()
 
@@ -32,8 +42,24 @@ async def update_tasks(task_id: int, task_in: TaskCreate, session: AsyncSession 
     return TaskRead.from_orm(task)
 
 @router.delete('/{task_id}', response_model=TaskRead)
-async def delete_task_by_id(task_id: int, session: AsyncSession = Depends(get_async_session)):
+async def delete_task_by_id(task_id: int, session: AsyncSession = Depends(get_async_session), current_user: User = Depends(get_current_user)):
     task = await delete_task(session, task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Задача для удаления не найдена")
     return TaskRead.from_orm(task)
+
+@router.post("/token", response_model=Token)
+async def login_for_access_token(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: AsyncSession = Depends(get_async_session)
+):
+    user = await get_user_by_username(db, form_data.username)
+    if not user or not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(data={"sub": user.username}, expires_delta=access_token_expires)
+    return {"access_token": access_token, "token_type": "bearer"}

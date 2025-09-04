@@ -1,6 +1,6 @@
 from typing import List, Optional
 from schemas.task import TaskCreate, TaskRead
-from database.models import Task
+from database.models import Task, User
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -47,3 +47,7 @@ async def delete_task(database: AsyncSession, task_id: int) -> Optional[Task]:
     await database.delete(task)
     await database.commit()
     return task
+
+async def get_user_by_username(database: AsyncSession, username: str) -> User | None:
+    result = await database.execute(select(User).where(User.username == username))
+    return result.scalars().first()

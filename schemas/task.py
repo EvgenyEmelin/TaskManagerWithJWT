@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import Optional
 
 class TaskCreate(BaseModel):
@@ -15,3 +15,24 @@ class TaskCreate(BaseModel):
 
 class TaskRead(TaskCreate):
     id: int
+
+#Модели для JWT Токена
+
+class UserLogin(BaseModel):
+    username:str
+    password:str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = 'bearer'
+
+class TokenData(BaseModel):
+    username: Optional[str]  = None
+
+class UserOut(BaseModel):
+    id: int
+    username: str
+    email: EmailStr
+
+    class Config:
+        orm_mode = True

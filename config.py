@@ -1,0 +1,3 @@
+SECRET_KEY = "твой-секретный-ключ"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 15
